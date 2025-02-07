@@ -14,40 +14,36 @@ class Note{
   }
 }
 
-export const note = new Elysia()
+export const note = new Elysia({prefix:'/note'})
 .decorate('note', new Note())
-.get("/note", ({ note }) => note.data)
-.put("/note", ({ note, body:{ data } }) => note.add(data),{
+.onTransform(function log({body, params, path, request:{ method}}){
+  console.log(`[${method}] ${path} - body: ${JSON.stringify(body)}, params: ${JSON.stringify(params)}`);
+})
+.get('/', ({ note }) => note.data)
+.put('/', ({ note, body:{ data } }) => note.add(data),{
     body: t.Object({
       data: t.String()
     })
 })
-.get("/note/:index", 
+.guard({
+  params: t.Object({ 
+    index: t.Number()
+  })
+})
+.get("/:index", 
   ({ note, params:{ index }, error})=>{
-    return note.data[index] ?? error(404, 'Not Found :(');
-  },{
-    params: t.Object({
-      index: t.Number()
-    })
+    return note.data[index] ?? error(404, 'Not Found :(');  
 }).delete(
-    "/note/:index",
+    "/:index",
     ({note, params:{ index }, error}) =>{
         if(index in note.data) return note.remove(index)
         return error(422);
-    },{
-        params: t.Object({
-            index: t.Number()
-        })
-    }
-).patch(
-    "/note/:index",
+}).patch(
+    '/:index',
     ({note, params:{ index }, body:{ data }, error}) =>{
         if(index in note.data) return note.update(index, data)
         return error(422);
-    },{
-        params: t.Object({
-            index: t.Number()
-        }),
+    },{       
         body: t.Object({
             data: t.String()
         })
